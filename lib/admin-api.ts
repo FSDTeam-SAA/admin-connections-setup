@@ -78,8 +78,7 @@ type ApiEnvelope<T> = {
   meta?: PaginationMeta | null;
 };
 
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export function emptyConnectionForm(): ConnectionFormState {
   return {
@@ -105,7 +104,7 @@ export function emptyCreateUserForm(): CreateUserFormState {
 }
 
 export function connectionFormFromConnection(
-  connection: ManagedConnection
+  connection: ManagedConnection,
 ): ConnectionFormState {
   return {
     host: connection.host,
@@ -142,7 +141,7 @@ export function formatDateTime(value: string | null | undefined) {
 
 export function buildConnectionPayload(
   form: ConnectionFormState,
-  { includePassword }: { includePassword: boolean }
+  { includePassword }: { includePassword: boolean },
 ) {
   const payload: Record<string, string | boolean> = {
     host: form.host.trim(),
@@ -166,7 +165,7 @@ export async function apiRequest<T>(
     method?: string;
     token?: string | null;
     body?: Record<string, unknown>;
-  } = {}
+  } = {},
 ): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: options.method || (options.body ? "POST" : "GET"),
@@ -200,7 +199,7 @@ export async function apiRequestWithMeta<T, M = PaginationMeta>(
     method?: string;
     token?: string | null;
     body?: Record<string, unknown>;
-  } = {}
+  } = {},
 ): Promise<{ data: T; meta: M | null }> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: options.method || (options.body ? "POST" : "GET"),
@@ -227,6 +226,6 @@ export async function apiRequestWithMeta<T, M = PaginationMeta>(
 
   return {
     data: (payload as ApiEnvelope<T>).data,
-    meta: (((payload as ApiEnvelope<T>).meta ?? null) as M | null),
+    meta: ((payload as ApiEnvelope<T>).meta ?? null) as M | null,
   };
 }
