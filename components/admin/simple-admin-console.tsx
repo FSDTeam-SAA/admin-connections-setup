@@ -476,8 +476,8 @@ function LoginScreen({
           <Image
             src={LOGO_URL}
             alt="Ivangraf logo"
-            width={40}
-            height={40}
+            width={80}
+            height={80}
             className="h-10 w-10 object-contain"
             unoptimized
           />
@@ -486,7 +486,7 @@ function LoginScreen({
               Admin Control Panel
             </div>
             <div className="mt-1 text-lg font-semibold text-[#2f2a21]">
-              Ivangraf User Management
+              User Management
             </div>
           </div>
         </div>
