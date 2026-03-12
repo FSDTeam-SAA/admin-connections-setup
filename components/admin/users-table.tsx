@@ -82,7 +82,11 @@ export function UsersTable({
                   <td className="max-w-[260px] px-4 py-4 text-[#6f6146]">
                     {user.connections.length
                       ? user.connections
-                          .map((connection) => connection.label || connection.database)
+                          .map((connection) =>
+                            `${connection.label || connection.database}${
+                              connection.kind === "merged" ? " (merged)" : ""
+                            }`
+                          )
                           .join(", ")
                       : "No connection"}
                   </td>

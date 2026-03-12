@@ -1,4 +1,5 @@
 export type Role = "admin" | "user";
+export type ConnectionKind = "direct" | "merged";
 
 export type SessionUser = {
   id: string;
@@ -9,13 +10,35 @@ export type SessionUser = {
 
 export type ManagedConnection = {
   id: string;
-  host: string;
-  port: number;
+  profileId: string | null;
+  kind: ConnectionKind;
+  isMerged: boolean;
+  sourceConnectionIds: string[];
+  sourceConnectionCount: number;
+  host: string | null;
+  port: number | null;
   database: string;
-  username: string;
+  mongoRefName: string;
+  username: string | null;
   encrypt: boolean;
   label: string;
   lastSyncAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DatabaseProfile = {
+  id: string;
+  host: string;
+  port: number;
+  database: string;
+  mongoRefName: string;
+  username: string;
+  encrypt: boolean;
+  label: string;
+  assignedConnections: number;
+  isConnected?: boolean;
+  createdBy: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -40,6 +63,12 @@ export type ConnectionFormState = {
   password: string;
   label: string;
   encrypt: boolean;
+};
+
+export type MergedConnectionFormState = {
+  label: string;
+  database: string;
+  sourceConnectionIds: string[];
 };
 
 export type CreateUserFormState = {
@@ -92,13 +121,21 @@ export function emptyConnectionForm(): ConnectionFormState {
   };
 }
 
+export function emptyMergedConnectionForm(): MergedConnectionFormState {
+  return {
+    label: "",
+    database: "",
+    sourceConnectionIds: [],
+  };
+}
+
 export function emptyCreateUserForm(): CreateUserFormState {
   return {
     name: "",
     email: "",
     password: "",
     role: "user",
-    attachConnection: true,
+    attachConnection: false,
     connection: emptyConnectionForm(),
   };
 }
@@ -107,10 +144,10 @@ export function connectionFormFromConnection(
   connection: ManagedConnection,
 ): ConnectionFormState {
   return {
-    host: connection.host,
-    port: String(connection.port),
+    host: connection.host || "",
+    port: connection.port ? String(connection.port) : "1433",
     database: connection.database,
-    username: connection.username,
+    username: connection.username || "",
     password: "",
     label: connection.label,
     encrypt: connection.encrypt,
@@ -157,6 +194,14 @@ export function buildConnectionPayload(
   }
 
   return payload;
+}
+
+export function buildMergedConnectionPayload(form: MergedConnectionFormState) {
+  return {
+    label: form.label.trim(),
+    database: form.database.trim(),
+    sourceConnectionIds: [...new Set(form.sourceConnectionIds.map((id) => id.trim()).filter(Boolean))],
+  };
 }
 
 export async function apiRequest<T>(
