@@ -4,8 +4,9 @@ export type ConnectionKind = "direct" | "merged";
 export type SessionUser = {
   id: string;
   name: string;
-  email: string;
+  username: string;
   role: Role;
+  isActive: boolean;
 };
 
 export type ManagedConnection = {
@@ -46,8 +47,9 @@ export type DatabaseProfile = {
 export type ManagedUser = {
   id: string;
   name: string;
-  email: string;
+  username: string;
   role: Role;
+  isActive: boolean;
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
@@ -73,7 +75,7 @@ export type MergedConnectionFormState = {
 
 export type CreateUserFormState = {
   name: string;
-  email: string;
+  username: string;
   password: string;
   role: Role;
   attachConnection: boolean;
@@ -82,8 +84,9 @@ export type CreateUserFormState = {
 
 export type EditUserFormState = {
   name: string;
-  email: string;
+  username: string;
   role: Role;
+  isActive: boolean;
   password: string;
 };
 
@@ -132,7 +135,7 @@ export function emptyMergedConnectionForm(): MergedConnectionFormState {
 export function emptyCreateUserForm(): CreateUserFormState {
   return {
     name: "",
-    email: "",
+    username: "",
     password: "",
     role: "user",
     attachConnection: false,
@@ -157,8 +160,9 @@ export function connectionFormFromConnection(
 export function userFormFromUser(user: ManagedUser): EditUserFormState {
   return {
     name: user.name,
-    email: user.email,
+    username: user.username,
     role: user.role,
+    isActive: user.isActive,
     password: "",
   };
 }

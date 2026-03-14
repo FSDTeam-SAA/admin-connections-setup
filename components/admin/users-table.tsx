@@ -38,7 +38,7 @@ export function UsersTable({
           <input
             value={searchValue}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Search by name, email, or role"
+            placeholder="Search by name, username, or role"
             className="h-11 w-full rounded-xl border border-[#e4cca0] bg-[#fffaf0] px-4 text-sm text-[#2f2a21] shadow-sm outline-none transition focus:border-[#cf9a39] focus:ring-2 focus:ring-[#f2d491]"
           />
         </div>
@@ -50,7 +50,8 @@ export function UsersTable({
             <thead className="bg-[#fff4d7] text-[#4e4637]">
               <tr>
                 <th className="px-4 py-3 font-semibold">Name</th>
-                <th className="px-4 py-3 font-semibold">Email</th>
+                <th className="px-4 py-3 font-semibold">Username</th>
+                <th className="px-4 py-3 font-semibold">Status</th>
                 <th className="px-4 py-3 font-semibold">Role</th>
                 <th className="px-4 py-3 font-semibold">Connections</th>
                 <th className="px-4 py-3 font-semibold">Database labels</th>
@@ -60,7 +61,7 @@ export function UsersTable({
             <tbody>
               {!loading && !users.length ? (
                 <tr>
-                  <td className="px-4 py-10 text-center text-[#7b6a48]" colSpan={6}>
+                  <td className="px-4 py-10 text-center text-[#7b6a48]" colSpan={7}>
                     No users matched your search.
                   </td>
                 </tr>
@@ -72,7 +73,18 @@ export function UsersTable({
                   className="cursor-pointer border-t border-[#f1e5ca] transition hover:bg-[#fff8e7]"
                 >
                   <td className="px-4 py-4 font-semibold text-[#2f2a21]">{user.name}</td>
-                  <td className="px-4 py-4 text-[#6f6146]">{user.email}</td>
+                  <td className="px-4 py-4 text-[#6f6146]">@{user.username}</td>
+                  <td className="px-4 py-4 text-[#6f6146]">
+                    <span
+                      className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${
+                        user.isActive
+                          ? "border-[#c9d8b0] bg-[#f6faef] text-[#50652b]"
+                          : "border-[#e1a0a0] bg-[#fff1f1] text-[#9f2b2b]"
+                      }`}
+                    >
+                      {user.isActive ? "Active" : "Disabled"}
+                    </span>
+                  </td>
                   <td className="px-4 py-4">
                     <span className="inline-flex items-center rounded-full border border-[#ead29d] bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9f7322]">
                       {user.role}

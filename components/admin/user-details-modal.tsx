@@ -105,7 +105,7 @@ export function UserDetailsModal({
                 User details
               </div>
               <h2 className="mt-2 text-2xl font-semibold text-[#2f2a21]">{user.name}</h2>
-              <p className="mt-1 text-sm text-[#7b6a48]">{user.email}</p>
+              <p className="mt-1 text-sm text-[#7b6a48]">@{user.username}</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <button

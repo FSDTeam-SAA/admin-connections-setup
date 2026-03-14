@@ -43,7 +43,7 @@ export function UserManagementCard({
               {user.role}
             </div>
             <h3 className="mt-3 text-xl font-semibold text-[#2f2a21]">{user.name}</h3>
-            <p className="mt-1 text-sm text-[#7b6a48]">{user.email}</p>
+            <p className="mt-1 text-sm text-[#7b6a48]">@{user.username}</p>
           </div>
           <div className="grid gap-3 text-sm text-[#6f6146] sm:grid-cols-2 lg:min-w-[300px]">
             <StatCard label="Databases" value={String(user.totalConnections)} />

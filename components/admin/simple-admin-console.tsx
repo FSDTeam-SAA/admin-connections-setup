@@ -108,7 +108,7 @@ export function SimpleAdminConsole() {
   const [profilePage, setProfilePage] = useState(1);
   const [assignmentPage, setAssignmentPage] = useState(1);
   const [selectedAssignmentUserId, setSelectedAssignmentUserId] = useState<string>("");
-  const [loginEmail, setLoginEmail] = useState("");
+  const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
@@ -208,15 +208,30 @@ export function SimpleAdminConsole() {
   });
 
   const loginMutation = useMutation({
-    mutationFn: ({ email, password }: { email: string; password: string }) =>
+    mutationFn: ({ username, password }: { username: string; password: string }) =>
       apiRequest<{ token: string; user: SessionUser }>("/api/auth/login", {
-        body: { email, password },
+        body: { username, password },
       }),
   });
 
   const createUserMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) =>
       apiRequest<ManagedUser>("/api/admin/users", {
+        token: sessionToken,
+        body: payload,
+      }),
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: ({
+      userId,
+      payload,
+    }: {
+      userId: string;
+      payload: Record<string, unknown>;
+    }) =>
+      apiRequest<ManagedUser>(`/api/admin/users/${userId}`, {
+        method: "PATCH",
         token: sessionToken,
         body: payload,
       }),
@@ -462,7 +477,7 @@ export function SimpleAdminConsole() {
 
     try {
       const response = await loginMutation.mutateAsync({
-        email: loginEmail.trim(),
+        username: loginUsername.trim(),
         password: loginPassword,
       });
 
@@ -513,7 +528,7 @@ export function SimpleAdminConsole() {
     try {
       const payload: Record<string, unknown> = {
         name: createUserForm.name.trim(),
-        email: createUserForm.email.trim(),
+        username: createUserForm.username.trim(),
         password: createUserForm.password,
         role: createUserForm.role,
       };
@@ -658,14 +673,32 @@ export function SimpleAdminConsole() {
     }
   };
 
+  const handleSetUserActive = async (userId: string, nextIsActive: boolean) => {
+    setBusyKey(`toggle-user:${userId}`);
+    try {
+      await updateUserMutation.mutateAsync({
+        userId,
+        payload: { isActive: nextIsActive },
+      });
+      await refreshUsers();
+      toast.success(nextIsActive ? "User enabled." : "User disabled.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update user status";
+      toast.error(message);
+      throw error;
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
   if (!authenticated) {
     return (
       <LoginScreen
         busyKey={busyKey}
-        loginEmail={loginEmail}
+        loginUsername={loginUsername}
         loginPassword={loginPassword}
         onLogin={handleLogin}
-        onLoginEmailChange={setLoginEmail}
+        onLoginUsernameChange={setLoginUsername}
         onLoginPasswordChange={setLoginPassword}
       />
     );
@@ -752,6 +785,7 @@ export function SimpleAdminConsole() {
                 onCreateMerged={handleCreateMergedConnection}
                 onDeleteConnection={handleDeleteConnection}
                 onDeleteUser={handleDeleteUser}
+                onSetUserActive={handleSetUserActive}
               />
             ) : null}
           </section>
@@ -1207,6 +1241,7 @@ function AssignmentsTab({
   onCreateMerged,
   onDeleteConnection,
   onDeleteUser,
+  onSetUserActive,
 }: {
   users: ManagedUser[];
   usersMeta: PaginationMeta;
@@ -1223,6 +1258,7 @@ function AssignmentsTab({
   onCreateMerged: (userId: string, payload: MergedConnectionFormState) => Promise<void>;
   onDeleteConnection: (userId: string, connectionId: string) => Promise<void>;
   onDeleteUser: (userId: string) => Promise<void>;
+  onSetUserActive: (userId: string, nextIsActive: boolean) => Promise<void>;
 }) {
   const selectedUser = users.find((user) => user.id === selectedUserId) || null;
 
@@ -1286,6 +1322,7 @@ function AssignmentsTab({
   const mergeBusy = selectedUser ? busyKey === `add-merged:${selectedUser.id}` : false;
   const deleteBusy = deleteConnectionId ? busyKey === `delete-connection:${deleteConnectionId}` : false;
   const deleteUserBusy = selectedUser ? busyKey === `delete-user:${selectedUser.id}` : false;
+  const toggleUserBusy = selectedUser ? busyKey === `toggle-user:${selectedUser.id}` : false;
   const userVisiblePages = getVisiblePages(usersMeta.page, usersMeta.totalPages);
   const usersStart = usersMeta.totalItems === 0 ? 0 : (usersMeta.page - 1) * usersMeta.limit + 1;
   const usersEnd = Math.min(usersMeta.totalItems, usersMeta.page * usersMeta.limit);
@@ -1339,9 +1376,12 @@ function AssignmentsTab({
                   }`}
                 >
                   <div className="text-sm font-semibold text-[#2f2a21]">{user.name}</div>
-                  <div className="mt-1 text-xs text-[#7b6a48]">{user.email}</div>
+                  <div className="mt-1 text-xs text-[#7b6a48]">@{user.username}</div>
                   <div className="mt-1 text-xs text-[#7b6a48]">
                     Direct: {userDirectCount} | Merged: {userMergedCount}
+                  </div>
+                  <div className="mt-1 text-xs text-[#7b6a48]">
+                    Status: {user.isActive ? "Active" : "Disabled"}
                   </div>
                 </button>
               );
@@ -1399,20 +1439,41 @@ function AssignmentsTab({
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <div className="text-lg font-semibold text-[#2f2a21]">{selectedUser.name}</div>
-                  <div className="text-sm text-[#7b6a48]">{selectedUser.email}</div>
+                  <div className="text-sm text-[#7b6a48]">@{selectedUser.username}</div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setDeleteUserOpen(true)}
-                  disabled={deleteUserBusy}
-                  className="rounded-full border border-[#e1a0a0] bg-[#fff1f1] px-4 py-2 text-sm font-semibold text-[#9f2b2b] disabled:opacity-60"
-                >
-                  {deleteUserBusy ? "Deleting..." : "Delete user"}
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onSetUserActive(selectedUser.id, !selectedUser.isActive)}
+                    disabled={toggleUserBusy}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60 ${
+                      selectedUser.isActive
+                        ? "border border-[#e1a0a0] bg-[#fff1f1] text-[#9f2b2b]"
+                        : "border border-[#c9d8b0] bg-[#f6faef] text-[#50652b]"
+                    }`}
+                  >
+                    {toggleUserBusy
+                      ? selectedUser.isActive
+                        ? "Disabling..."
+                        : "Enabling..."
+                      : selectedUser.isActive
+                        ? "Disable user"
+                        : "Enable user"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteUserOpen(true)}
+                    disabled={deleteUserBusy}
+                    className="rounded-full border border-[#e1a0a0] bg-[#fff1f1] px-4 py-2 text-sm font-semibold text-[#9f2b2b] disabled:opacity-60"
+                  >
+                    {deleteUserBusy ? "Deleting..." : "Delete user"}
+                  </button>
+                </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-4">
                 <MetaCard label="Role" value={selectedUser.role} />
+                <MetaCard label="Status" value={selectedUser.isActive ? "Active" : "Disabled"} />
                 <MetaCard label="Direct DBs" value={String(directConnections.length)} />
                 <MetaCard label="Merged DBs" value={String(mergedConnections.length)} />
               </div>
@@ -1730,17 +1791,17 @@ function getVisiblePages(page: number, totalPages: number) {
 
 function LoginScreen({
   busyKey,
-  loginEmail,
+  loginUsername,
   loginPassword,
   onLogin,
-  onLoginEmailChange,
+  onLoginUsernameChange,
   onLoginPasswordChange,
 }: {
   busyKey: string | null;
-  loginEmail: string;
+  loginUsername: string;
   loginPassword: string;
   onLogin: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-  onLoginEmailChange: (value: string) => void;
+  onLoginUsernameChange: (value: string) => void;
   onLoginPasswordChange: (value: string) => void;
 }) {
   return (
@@ -1778,10 +1839,10 @@ function LoginScreen({
 
             <div className="space-y-6">
               <InputField
-                label="Email"
-                value={loginEmail}
-                onChange={onLoginEmailChange}
-                type="email"
+                label="Username"
+                value={loginUsername}
+                onChange={onLoginUsernameChange}
+                type="text"
                 required
               />
               <InputField
@@ -1851,10 +1912,10 @@ function CreateUserDialog({
               required
             />
             <InputField
-              label="Email"
-              value={form.email}
-              onChange={(next) => onFormChange({ ...form, email: next })}
-              type="email"
+              label="Username"
+              value={form.username}
+              onChange={(next) => onFormChange({ ...form, username: next })}
+              type="text"
               required
             />
             <InputField
