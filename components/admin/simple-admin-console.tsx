@@ -691,6 +691,24 @@ export function SimpleAdminConsole() {
     }
   };
 
+  const handleUpdateUserPassword = async (userId: string, password: string) => {
+    setBusyKey(`password-user:${userId}`);
+    try {
+      await updateUserMutation.mutateAsync({
+        userId,
+        payload: { password },
+      });
+      await refreshUsers();
+      toast.success("Password updated.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update password";
+      toast.error(message);
+      throw error;
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
   if (!authenticated) {
     return (
       <LoginScreen
@@ -786,6 +804,7 @@ export function SimpleAdminConsole() {
                 onDeleteConnection={handleDeleteConnection}
                 onDeleteUser={handleDeleteUser}
                 onSetUserActive={handleSetUserActive}
+                onUpdateUserPassword={handleUpdateUserPassword}
               />
             ) : null}
           </section>
@@ -1242,6 +1261,7 @@ function AssignmentsTab({
   onDeleteConnection,
   onDeleteUser,
   onSetUserActive,
+  onUpdateUserPassword,
 }: {
   users: ManagedUser[];
   usersMeta: PaginationMeta;
@@ -1259,6 +1279,7 @@ function AssignmentsTab({
   onDeleteConnection: (userId: string, connectionId: string) => Promise<void>;
   onDeleteUser: (userId: string) => Promise<void>;
   onSetUserActive: (userId: string, nextIsActive: boolean) => Promise<void>;
+  onUpdateUserPassword: (userId: string, password: string) => Promise<void>;
 }) {
   const selectedUser = users.find((user) => user.id === selectedUserId) || null;
 
@@ -1306,6 +1327,10 @@ function AssignmentsTab({
   const [mergedForm, setMergedForm] = useState<MergedConnectionFormState>(() => emptyMergedConnectionForm());
   const [deleteConnectionId, setDeleteConnectionId] = useState<string | null>(null);
   const [deleteUserOpen, setDeleteUserOpen] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    password: "",
+    confirmPassword: "",
+  });
 
   const filteredAvailableProfiles = useMemo(() => {
     const term = profileQuery.trim().toLowerCase();
@@ -1323,6 +1348,7 @@ function AssignmentsTab({
   const deleteBusy = deleteConnectionId ? busyKey === `delete-connection:${deleteConnectionId}` : false;
   const deleteUserBusy = selectedUser ? busyKey === `delete-user:${selectedUser.id}` : false;
   const toggleUserBusy = selectedUser ? busyKey === `toggle-user:${selectedUser.id}` : false;
+  const passwordBusy = selectedUser ? busyKey === `password-user:${selectedUser.id}` : false;
   const userVisiblePages = getVisiblePages(usersMeta.page, usersMeta.totalPages);
   const usersStart = usersMeta.totalItems === 0 ? 0 : (usersMeta.page - 1) * usersMeta.limit + 1;
   const usersEnd = Math.min(usersMeta.totalItems, usersMeta.page * usersMeta.limit);
@@ -1477,6 +1503,74 @@ function AssignmentsTab({
                 <MetaCard label="Direct DBs" value={String(directConnections.length)} />
                 <MetaCard label="Merged DBs" value={String(mergedConnections.length)} />
               </div>
+
+              <form
+                className="space-y-4 rounded-xl border border-[#ecd9b3] bg-[#fffaf0] p-4"
+                onSubmit={async (event: FormEvent<HTMLFormElement>) => {
+                  event.preventDefault();
+                  if (!selectedUser) return;
+
+                  const nextPassword = passwordForm.password;
+                  if (!nextPassword.trim()) {
+                    toast.error("Password is required.");
+                    return;
+                  }
+                  if (nextPassword.length < 6) {
+                    toast.error("Password must be at least 6 characters.");
+                    return;
+                  }
+                  if (nextPassword !== passwordForm.confirmPassword) {
+                    toast.error("Passwords do not match.");
+                    return;
+                  }
+
+                  await onUpdateUserPassword(selectedUser.id, nextPassword);
+                  setPasswordForm({ password: "", confirmPassword: "" });
+                }}
+              >
+                <div className="text-sm font-semibold text-[#6d5526]">Change user password</div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="flex flex-col gap-2 text-sm font-medium text-[#6d5526]">
+                    <span>New password</span>
+                    <input
+                      type="password"
+                      value={passwordForm.password}
+                      onChange={(event) =>
+                        setPasswordForm((current) => ({
+                          ...current,
+                          password: event.target.value,
+                        }))
+                      }
+                      autoComplete="new-password"
+                      className="h-11 rounded-xl border border-[#e4cca0] bg-white px-4 text-sm text-[#2f2a21] shadow-sm outline-none transition focus:border-[#cf9a39] focus:ring-2 focus:ring-[#f2d491]"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-2 text-sm font-medium text-[#6d5526]">
+                    <span>Confirm password</span>
+                    <input
+                      type="password"
+                      value={passwordForm.confirmPassword}
+                      onChange={(event) =>
+                        setPasswordForm((current) => ({
+                          ...current,
+                          confirmPassword: event.target.value,
+                        }))
+                      }
+                      autoComplete="new-password"
+                      className="h-11 rounded-xl border border-[#e4cca0] bg-white px-4 text-sm text-[#2f2a21] shadow-sm outline-none transition focus:border-[#cf9a39] focus:ring-2 focus:ring-[#f2d491]"
+                    />
+                  </label>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={passwordBusy}
+                    className="rounded-full bg-[#2f2a21] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                  >
+                    {passwordBusy ? "Updating..." : "Update password"}
+                  </button>
+                </div>
+              </form>
 
               <form
                 className="space-y-4 rounded-xl border border-[#d7d5f2] bg-[#f8f7ff] p-4"
