@@ -581,7 +581,7 @@ export function SimpleAdminConsole() {
     setBusyKey(`update-db-profile:${profileId}`);
     try {
       await updateDatabaseProfileMutation.mutateAsync({ profileId, payload });
-      await refreshDatabaseProfiles();
+      await refreshAdminData();
       toast.success("Connection profile updated.");
     } catch (error) {
       const message =
